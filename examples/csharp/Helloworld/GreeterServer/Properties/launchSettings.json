@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GreeterServer": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Projects\\grpc\\examples\\csharp\\Helloworld\\GreeterServer\\"
+    }
+  }
+}

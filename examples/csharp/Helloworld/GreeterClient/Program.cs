@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.IO;
 using Grpc.Core;
 using Helloworld;
 
@@ -20,19 +21,28 @@ namespace GreeterClient
 {
     class Program
     {
-        public static void Main(string[] args)
-        {
-            Channel channel = new Channel("127.0.0.1:50051", ChannelCredentials.Insecure);
+      public static void Main(string[] args)
+      {
+        // if you remove the suffix 2, the following will work fine
+        var cacert = File.ReadAllText(Path.Combine("..", "ca2.crt"));
+        var clientcert = File.ReadAllText(Path.Combine("..", "client2.crt"));
+        var clientkey = File.ReadAllText(Path.Combine("..", "client.key"));
+        var ssl = new SslCredentials(cacert, new KeyCertificatePair(clientcert, clientkey), VerifyPeer);
+        var channel = new Channel("localhost", 50051, ssl);
+        var client = new Greeter.GreeterClient(channel);
+        String user = "you";
 
-            var client = new Greeter.GreeterClient(channel);
-            String user = "you";
+        var reply = client.SayHello(new HelloRequest {Name = user});
+        Console.WriteLine("Greeting: " + reply.Message);
 
-            var reply = client.SayHello(new HelloRequest { Name = user });
-            Console.WriteLine("Greeting: " + reply.Message);
+        channel.ShutdownAsync().Wait();
+        Console.WriteLine("Press any key to exit...");
+        Console.ReadKey();
+      }
 
-            channel.ShutdownAsync().Wait();
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
-    }
+      private static bool VerifyPeer(VerifyPeerContext context)
+      {
+        return true;
+      }
+  }
 }

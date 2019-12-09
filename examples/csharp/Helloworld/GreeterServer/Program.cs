@@ -13,6 +13,8 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Helloworld;
@@ -34,18 +36,22 @@ namespace GreeterServer
 
         public static void Main(string[] args)
         {
-            Server server = new Server
-            {
-                Services = { Greeter.BindService(new GreeterImpl()) },
-                Ports = { new ServerPort("localhost", Port, ServerCredentials.Insecure) }
-            };
-            server.Start();
-
-            Console.WriteLine("Greeter server listening on port " + Port);
-            Console.WriteLine("Press any key to stop the server...");
-            Console.ReadKey();
-
-            server.ShutdownAsync().Wait();
+          var cacert = File.ReadAllText(Path.Combine("..", "ca.crt"));
+          var servercert = File.ReadAllText(Path.Combine("..", "server.crt"));
+          var serverkey = File.ReadAllText(Path.Combine("..", "server.key"));
+          var keypair = new KeyCertificatePair(servercert, serverkey);
+          var sslCredentials = new SslServerCredentials(new List<KeyCertificatePair>() {keypair}, cacert,
+            SslClientCertificateRequestType.DontRequest);
+          Server server = new Server
+          {
+            Services = {Greeter.BindService(new GreeterImpl())},
+            Ports = {new ServerPort("localhost", Port, sslCredentials)}
+          };
+          server.Start();
+          Console.WriteLine("Greeter server listening on port " + Port);
+          Console.WriteLine("Press any key to stop the server...");
+          Console.ReadKey();
+          server.ShutdownAsync().Wait();
         }
     }
 }
